@@ -30,6 +30,16 @@ services:
     volumes:
       - ./.volumes/data_postgres:/var/lib/postgresql/data
 
+  mkdocs:
+    build:
+      context: ./mkdocs
+      dockerfile: Dockerfile
+    container_name: mkdocs
+    ports:
+      - "9999:80"
+    networks:
+      - dev_net
+
 volumes:
   data_minio:
   data_postgres:
