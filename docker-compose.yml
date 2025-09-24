@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio_db
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    command: server /data --console-address ":9001"
+    networks:
+      - dev_net
+    volumes:
+      - ./.volumes/data_minio:/data
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: app_db
+    networks:
+      - dev_net
+    volumes:
+      - ./.volumes/data_postgres:/var/lib/postgresql/data
+
+volumes:
+  data_minio:
+  data_postgres:
+
+networks:
+  dev_net:
+    driver: bridge
+    ipam:
+      config: 
+      - subnet: 172.40.0.0/16
