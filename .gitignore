@@ -1,3 +1,5 @@
 .volumes/
 */.venv
 /.idea/*
+__pycache__/
+processed/
