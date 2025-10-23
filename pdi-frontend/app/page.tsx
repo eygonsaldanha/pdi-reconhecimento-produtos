@@ -136,45 +136,81 @@ function PhotoUpload({
       reader.onload = (e) => {
         const imageUrl = e.target?.result as string;
         setUploadedImage(imageUrl);
-        analyzePhoto(imageUrl);
+        analyzePhoto(imageUrl, file);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const analyzePhoto = async (imageUrl: string) => {
+  const analyzePhoto = async (imageUrl: string, file: File) => {
     setIsAnalyzing(true);
 
-    const mockProducts = [
-      { name: "Banana Prata", price: 5.99, confidence: 0.95 },
-      { name: "Leite Integral 1L", price: 4.89, confidence: 0.92 },
-      { name: "Pão de Açúcar Francês", price: 8.5, confidence: 0.88 },
-      { name: "Detergente Ypê", price: 2.49, confidence: 0.91 },
-      { name: "Arroz Branco 5kg", price: 24.99, confidence: 0.89 },
-      { name: "Sabonete Dove", price: 3.79, confidence: 0.93 },
-      { name: "Coca-Cola 2L", price: 7.99, confidence: 0.96 },
-      { name: "Ovos Brancos 12un", price: 8.99, confidence: 0.9 },
-      { name: "Papel Higiênico Neve", price: 12.5, confidence: 0.87 },
-      { name: "Feijão Preto 1kg", price: 6.89, confidence: 0.94 },
-      { name: "Maçã Gala", price: 7.99, confidence: 0.92 },
-      { name: "Açúcar Cristal 1kg", price: 3.99, confidence: 0.88 },
-      { name: "Amaciante Comfort", price: 5.49, confidence: 0.85 },
-      { name: "Margarina Qualy", price: 4.29, confidence: 0.91 },
-      { name: "Macarrão Espaguete", price: 3.5, confidence: 0.89 },
-    ];
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch("http://localhost:5000/process-image", {
+        method: "POST",
+        body: formData,
+      });
 
-    const randomProduct =
-      mockProducts[Math.floor(Math.random() * mockProducts.length)];
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
 
-    onPhotoAnalyzed({
-      id: Math.random().toString(36).substr(2, 9),
-      name: randomProduct.name,
-      price: randomProduct.price,
-      image: imageUrl,
-      confidence: randomProduct.confidence,
-    });
+      const result = await response.json();
+
+      if (result.success) {
+        // Mock de produtos para simular identificação
+        const mockProducts = [
+          { name: "Banana Prata", price: 5.99, confidence: 0.95 },
+          { name: "Leite Integral 1L", price: 4.89, confidence: 0.92 },
+          { name: "Pão de Açúcar Francês", price: 8.5, confidence: 0.88 },
+          { name: "Detergente Ypê", price: 2.49, confidence: 0.91 },
+          { name: "Arroz Branco 5kg", price: 24.99, confidence: 0.89 },
+          { name: "Sabonete Dove", price: 3.79, confidence: 0.93 },
+          { name: "Coca-Cola 2L", price: 7.99, confidence: 0.96 },
+          { name: "Ovos Brancos 12un", price: 8.99, confidence: 0.9 },
+          { name: "Papel Higiênico Neve", price: 12.5, confidence: 0.87 },
+          { name: "Feijão Preto 1kg", price: 6.89, confidence: 0.94 },
+          { name: "Maçã Gala", price: 7.99, confidence: 0.92 },
+          { name: "Açúcar Cristal 1kg", price: 3.99, confidence: 0.88 },
+          { name: "Amaciante Comfort", price: 5.49, confidence: 0.85 },
+          { name: "Margarina Qualy", price: 4.29, confidence: 0.91 },
+          { name: "Macarrão Espaguete", price: 3.5, confidence: 0.89 },
+        ];
+
+        const randomProduct =
+          mockProducts[Math.floor(Math.random() * mockProducts.length)];
+
+        onPhotoAnalyzed({
+          id: Math.random().toString(36).substr(2, 9),
+          name: randomProduct.name,
+          price: randomProduct.price,
+          image: imageUrl,
+          confidence: randomProduct.confidence,
+        });
+
+        console.log("Imagem processada com sucesso:", result);
+      } else {
+        throw new Error("Falha no processamento da imagem");
+      }
+    } catch (error) {
+      console.error("Erro ao processar imagem:", error);
+
+      // Fallback para modo mock em caso de erro
+      const mockProducts = [
+        { name: "Produto Não Identificado", price: 0.0, confidence: 0.5 },
+      ];
+
+      onPhotoAnalyzed({
+        id: Math.random().toString(36).substr(2, 9),
+        name: mockProducts[0].name,
+        price: mockProducts[0].price,
+        image: imageUrl,
+        confidence: mockProducts[0].confidence,
+      });
+    }
 
     setIsAnalyzing(false);
   };
@@ -231,7 +267,7 @@ function PhotoUpload({
                 </span>
               </div>
               <p className="text-muted-foreground text-lg">
-                 estamos identificando o produto na imagem
+                estamos identificando o produto na imagem
               </p>
               <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                 <div
