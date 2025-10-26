@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import cv2
 import numpy as np
@@ -7,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 app = Flask(__name__)
+CORS(app)
 
 # Configurações
 OUTPUT_DIR = 'processed_images'
@@ -146,9 +148,9 @@ def internal_error(e):
     }), 500
 
 if __name__ == '__main__':
-    print("🚀 Iniciando API de Processamento de Imagens...")
-    print(f"📁 Pasta de saída: {os.path.abspath(OUTPUT_DIR)}")
-    print(f"📏 Tamanho máximo de arquivo: {MAX_FILE_SIZE // (1024*1024)}MB")
-    print(f"🎨 Tipos de arquivo aceitos: {', '.join(ALLOWED_EXTENSIONS)}")
+    print(" Iniciando API de Processamento de Imagens...")
+    print(f" Pasta de saída: {os.path.abspath(OUTPUT_DIR)}")
+    print(f" Tamanho máximo de arquivo: {MAX_FILE_SIZE // (1024*1024)}MB")
+    print(f" Tipos de arquivo aceitos: {', '.join(ALLOWED_EXTENSIONS)}")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
