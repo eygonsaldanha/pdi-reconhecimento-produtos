@@ -1,9 +1,11 @@
 import cv2
 import numpy as np
 from flask import jsonify
+from werkzeug.datastructures import FileStorage
 
 from common import allowed_file, ALLOWED_EXTENSIONS
 from knn_process_image import knn_process_image
+from io_minio import upload_img
 
 
 def process_image_exec(request):
@@ -26,7 +28,9 @@ def process_image_exec(request):
         if img is None:
             return jsonify({'error': 'Não foi possível ler a imagem', 'code': 'INVALID_IMAGE'}), 400
 
-        return jsonify({'path_image_result': knn_process_image(img)}), 200
+        upload_img(image=img, content_type=file.content_type)
+        knn_result = knn_process_image(img)
+        return jsonify({'path_image_result': knn_result}), 200
 
     except Exception as e:
         return jsonify({'error': f'Erro interno do servidor: {str(e)}', 'code': 'INTERNAL_ERROR'}), 500
