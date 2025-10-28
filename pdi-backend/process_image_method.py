@@ -28,9 +28,25 @@ def process_image_exec(request):
         if img is None:
             return jsonify({'error': 'Não foi possível ler a imagem', 'code': 'INVALID_IMAGE'}), 400
 
-        upload_img(image=img, content_type=file.content_type)
-        knn_result = knn_process_image(img)
-        return jsonify({'path_image_result': knn_result}), 200
+        not_is_this_products = []
+        if 'not-is' in request.args:
+            not_is_this_products = request.args['not-is'].split(',')
+            not_is_this_products = [int(x) for x in not_is_this_products if x.strip().isdigit()]
+        print(not_is_this_products)
+        """
+        Insere DATA recebida
+        
+        Realiza todos os processos para a DATA recebida e salva todos os resultados de imagens como DATA e a referencia do processo em DATA_PROCESS
+        
+        Apos todos os processos achar a maior similaridade e retornar ao usuario
+        
+        """
+        # upload_img(image=img, content_type=file.content_type)
+        # knn_result = knn_process_image(img)
+        return jsonify({
+            'nm_product': 'Nome do Produto Mock',
+            'vl_product': 0
+        }), 200
 
     except Exception as e:
         return jsonify({'error': f'Erro interno do servidor: {str(e)}', 'code': 'INTERNAL_ERROR'}), 500

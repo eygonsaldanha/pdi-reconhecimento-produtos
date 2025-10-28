@@ -15,13 +15,21 @@ minio_client = boto3.client(service_name="s3",  #
                             )
 
 
-def upload_img(image, content_type):
+def upload_img(image, content_type, key=None):
+    if not key:
+        key = generate_hash(content_type)
+        
+    try:
+        minio_client.head_bucket(Bucket=bucket_name)
+    except ClientError:
+        minio_client.create_bucket(Bucket=bucket_name)
+        
     _, extension = content_type.split('/')
     _, buffer = cv2.imencode(f".{extension}", image)
     image_bytes = io.BytesIO(buffer)
 
     minio_client.put_object(Bucket=bucket_name,  #
-                            Key=generate_hash(content_type),  #
+                            Key=key,  #
                             Body=image_bytes.getvalue(),  #
                             ContentType=content_type  #
                             )
