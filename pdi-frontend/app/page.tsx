@@ -118,11 +118,11 @@ function PhotoUpload({
   onPhotoAnalyzed,
 }: {
   onPhotoAnalyzed: (product: {
-    id: string;
-    name: string;
-    price: number;
+    id: number;
+    idProduto: number;
+    nm_product: string;
+    vl_product: number;
     image: string;
-    confidence: number;
   }) => void;
 }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -161,34 +161,12 @@ function PhotoUpload({
       const result = await response.json();
 
       if (result.success) {
-        // Mock de produtos para simular identificação
-        const mockProducts = [
-          { name: "Banana Prata", price: 5.99, confidence: 0.95 },
-          { name: "Leite Integral 1L", price: 4.89, confidence: 0.92 },
-          { name: "Pão de Açúcar Francês", price: 8.5, confidence: 0.88 },
-          { name: "Detergente Ypê", price: 2.49, confidence: 0.91 },
-          { name: "Arroz Branco 5kg", price: 24.99, confidence: 0.89 },
-          { name: "Sabonete Dove", price: 3.79, confidence: 0.93 },
-          { name: "Coca-Cola 2L", price: 7.99, confidence: 0.96 },
-          { name: "Ovos Brancos 12un", price: 8.99, confidence: 0.9 },
-          { name: "Papel Higiênico Neve", price: 12.5, confidence: 0.87 },
-          { name: "Feijão Preto 1kg", price: 6.89, confidence: 0.94 },
-          { name: "Maçã Gala", price: 7.99, confidence: 0.92 },
-          { name: "Açúcar Cristal 1kg", price: 3.99, confidence: 0.88 },
-          { name: "Amaciante Comfort", price: 5.49, confidence: 0.85 },
-          { name: "Margarina Qualy", price: 4.29, confidence: 0.91 },
-          { name: "Macarrão Espaguete", price: 3.5, confidence: 0.89 },
-        ];
-
-        const randomProduct =
-          mockProducts[Math.floor(Math.random() * mockProducts.length)];
-
         onPhotoAnalyzed({
-          id: Math.random().toString(36).substr(2, 9),
-          name: randomProduct.name,
-          price: randomProduct.price,
+          id: result.id_data,
+          idProduto: result.id_product,
+          nm_product: result.nm_product,
+          vl_product: result.vl_product,
           image: imageUrl,
-          confidence: randomProduct.confidence,
         });
 
         console.log("Imagem processada com sucesso:", result);
@@ -199,16 +177,12 @@ function PhotoUpload({
       console.error("Erro ao processar imagem:", error);
 
       // Fallback para modo mock em caso de erro
-      const mockProducts = [
-        { name: "Produto Não Identificado", price: 0.0, confidence: 0.5 },
-      ];
-
       onPhotoAnalyzed({
-        id: Math.random().toString(36).substr(2, 9),
-        name: mockProducts[0].name,
-        price: mockProducts[0].price,
+        id: Math.floor(Math.random() * 1000000),
+        idProduto: 0,
+        nm_product: "Produto Não Identificado",
+        vl_product: 0.0,
         image: imageUrl,
-        confidence: mockProducts[0].confidence,
       });
     }
 
@@ -250,6 +224,7 @@ function PhotoUpload({
         {uploadedImage && isAnalyzing && (
           <>
             <div className="mx-auto w-64 h-64 rounded-2xl overflow-hidden shadow-2xl ring-4 ring-primary/30 animate-pulse">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={uploadedImage || "/placeholder.svg"}
                 alt="Produto enviado"
@@ -294,26 +269,107 @@ function PhotoUpload({
 function ProductResult({
   product,
   onReset,
+  onProductUpdate,
 }: {
   product: {
-    id: string;
-    name: string;
-    price: number;
+    id: number;
+    idProduto: number;
+    nm_product: string;
+    vl_product: number;
     image: string;
-    confidence: number;
   };
   onReset: () => void;
+  onProductUpdate?: (newProduct: {
+    id: number;
+    idProduto: number;
+    nm_product: string;
+    vl_product: number;
+    image: string;
+  }) => void;
 }) {
   const { addToCart } = useCart();
+  const [isReprocessing, setIsReprocessing] = useState(false);
+  const [rejectedProducts, setRejectedProducts] = useState<number[]>([]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    // Adicionar ao carrinho primeiro
     addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
+      id: product.id.toString(),
+      name: product.nm_product,
+      price: product.vl_product,
       image: product.image,
       quantity: 1,
     });
+
+    // Fazer requisição de confirmação para registro (ignora o retorno)
+    try {
+      await fetch("http://localhost:5000/process-image/confirm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id_product: product.idProduto,
+          id_data: product.id,
+        }),
+      });
+      console.log("Confirmação registrada com sucesso");
+    } catch (error) {
+      console.error("Erro ao registrar confirmação:", error);
+      // Ignora o erro, pois é apenas para registro
+    }
+  };
+
+  const handleIncorrectProduct = async () => {
+    setIsReprocessing(true);
+
+    // Adicionar o produto atual à lista de rejeitados
+    const updatedRejectedProducts = [...rejectedProducts, product.idProduto];
+    setRejectedProducts(updatedRejectedProducts);
+
+    try {
+      // Converter a imagem base64 de volta para File
+      const response = await fetch(product.image);
+      const blob = await response.blob();
+      const file = new File([blob], "image.jpg", { type: blob.type });
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("id_data", product.id.toString());
+      formData.append("not-is", updatedRejectedProducts.join(","));
+
+      const apiResponse = await fetch("http://localhost:5000/process-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error(`Erro HTTP: ${apiResponse.status}`);
+      }
+
+      const result = await apiResponse.json();
+      console.log("Reprocessamento realizado:", result);
+
+      // Se o reprocessamento retornou um novo produto, atualizar
+      if (result.success && onProductUpdate) {
+        onProductUpdate({
+          id: result.id_data,
+          idProduto: result.id_product,
+          nm_product: result.nm_product,
+          vl_product: result.vl_product,
+          image: product.image,
+        });
+      } else {
+        // Caso contrário, voltar para a tela inicial
+        onReset();
+      }
+    } catch (error) {
+      console.error("Erro ao reprocessar imagem:", error);
+      // Em caso de erro, apenas voltar para a tela inicial
+      onReset();
+    }
+
+    setIsReprocessing(false);
   };
 
   const formatPrice = (price: number) => {
@@ -327,33 +383,44 @@ function ProductResult({
     <Card className="w-full max-w-2xl p-8 bg-card/50 backdrop-blur-xl border-2 border-primary/20 shadow-2xl">
       <div className="space-y-6">
         <div className="relative mx-auto w-64 h-64 rounded-2xl overflow-hidden shadow-xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={product.image || "/placeholder.svg"}
-            alt={product.name}
+            alt={product.nm_product}
             className="w-full h-full object-cover"
           />
           <Badge className="absolute top-3 right-3 bg-accent/90 text-accent-foreground backdrop-blur-sm">
-            {Math.round(product.confidence * 100)}% confiança
+            ID: {product.idProduto}
           </Badge>
         </div>
 
         <div className="text-center space-y-4">
           <h2 className="text-3xl font-bold text-card-foreground">
-            {product.name}
+            {product.nm_product}
           </h2>
           <p className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent bg-black">
-            {formatPrice(product.price)}
+            {formatPrice(product.vl_product)}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
             variant="outline"
-            onClick={onReset}
-            className="flex-1 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent backdrop-blur-sm"
+            onClick={handleIncorrectProduct}
+            disabled={isReprocessing}
+            className="flex-1 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent backdrop-blur-sm disabled:opacity-50"
           >
-            <X className="w-4 h-4 mr-2" />
-            Produto Incorreto
+            {isReprocessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Reprocessando...
+              </>
+            ) : (
+              <>
+                <X className="w-4 h-4 mr-2" />
+                Produto Incorreto
+              </>
+            )}
           </Button>
 
           <Button
@@ -429,6 +496,7 @@ function ShoppingCartSidebar() {
                 <div className="space-y-3">
                   <div className="flex space-x-3">
                     <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.image || "/placeholder.svg"}
                         alt={item.name}
@@ -527,25 +595,35 @@ function ShoppingCartSidebar() {
 
 export default function Home() {
   const [analyzedProduct, setAnalyzedProduct] = useState<{
-    id: string;
-    name: string;
-    price: number;
+    id: number;
+    idProduto: number;
+    nm_product: string;
+    vl_product: number;
     image: string;
-    confidence: number;
   } | null>(null);
 
   const handlePhotoAnalyzed = (product: {
-    id: string;
-    name: string;
-    price: number;
+    id: number;
+    idProduto: number;
+    nm_product: string;
+    vl_product: number;
     image: string;
-    confidence: number;
   }) => {
     setAnalyzedProduct(product);
   };
 
   const handleResetProduct = () => {
     setAnalyzedProduct(null);
+  };
+
+  const handleProductUpdate = (newProduct: {
+    id: number;
+    idProduto: number;
+    nm_product: string;
+    vl_product: number;
+    image: string;
+  }) => {
+    setAnalyzedProduct(newProduct);
   };
 
   return (
@@ -580,6 +658,7 @@ export default function Home() {
                 <ProductResult
                   product={analyzedProduct}
                   onReset={handleResetProduct}
+                  onProductUpdate={handleProductUpdate}
                 />
               )}
             </div>
