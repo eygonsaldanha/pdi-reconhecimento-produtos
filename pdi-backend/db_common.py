@@ -30,4 +30,5 @@ def insert_data(table, data, need_convert=True):
     pd.DataFrame(data).to_sql(table.lower(), engine, if_exists="append", index=False)
 
 
-select = lambda sql: pd.read_sql(sql, engine)
+def select_data(sql):
+    return pd.read_sql(sql, engine)

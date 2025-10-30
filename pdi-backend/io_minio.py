@@ -1,5 +1,6 @@
 import io
 
+import numpy as np
 import boto3
 import cv2
 from botocore.exceptions import ClientError
@@ -51,3 +52,8 @@ def get_single_object(object_name):
         else:
             print(f"Erro ao baixar objeto: {e}")
         return None
+
+def get_single_object_img(object_name):
+    np_array = np.frombuffer(get_single_object(object_name), np.uint8)
+    img_original = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+    return img_original
