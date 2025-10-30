@@ -81,7 +81,7 @@ class PipelinePDI:
                 'border_margin': 1
             },
             'features': {
-                'lbp_params': {'P': 8, 'R': 1},
+                'lbp_params': {'p': 8, 'r': 1},
                 'glcm_params': {
                     'distances': [1, 2, 3],
                     'angles': [0, 45, 90, 135]
@@ -447,7 +447,7 @@ def exemplo_uso():
             'border_margin': 1
         },
         'features': {
-            'lbp_params': {'P': 8, 'R': 1},
+            'lbp_params': {'p': 8, 'r': 1},
             'glcm_params': {
                 'distances': [1, 2, 3],
                 'angles': [0, 45, 90, 135]
