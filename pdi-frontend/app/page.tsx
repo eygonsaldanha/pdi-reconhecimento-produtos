@@ -159,8 +159,9 @@ function PhotoUpload({
       }
 
       const result = await response.json();
-
-      if (result.success) {
+      console.log("result: ", result);
+      
+      if (result) {
         onPhotoAnalyzed({
           id: result.id_data,
           idProduto: result.id_product,
@@ -337,12 +338,14 @@ function ProductResult({
       formData.append("file", file);
       formData.append("id_data", product.id.toString());
       formData.append("not-is", updatedRejectedProducts.join(","));
-
+      console.log(formData);
+      
       const apiResponse = await fetch("http://localhost:5000/process-image", {
         method: "POST",
         body: formData,
       });
-
+      console.log("apiResponse: ", apiResponse);
+      
       if (!apiResponse.ok) {
         throw new Error(`Erro HTTP: ${apiResponse.status}`);
       }
@@ -351,7 +354,6 @@ function ProductResult({
       console.log("Reprocessamento realizado:", result);
 
       // Se o reprocessamento retornou um novo produto, atualizar
-      if (result.success && onProductUpdate) {
         onProductUpdate({
           id: result.id_data,
           idProduto: result.id_product,
@@ -359,10 +361,6 @@ function ProductResult({
           vl_product: result.vl_product,
           image: product.image,
         });
-      } else {
-        // Caso contrário, voltar para a tela inicial
-        onReset();
-      }
     } catch (error) {
       console.error("Erro ao reprocessar imagem:", error);
       // Em caso de erro, apenas voltar para a tela inicial
