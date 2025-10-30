@@ -55,8 +55,25 @@ class KNN:
             glcm_features.get('energy', 0.0)
         ], dtype=float)
 
-        # Vetor final: hist_gray (256) + hist_rgb (768) + 2 (LBP) + 3 (GLCM)
-        return np.concatenate([hist_gray, hist_rgb, np.array([lbp_mean, lbp_std], dtype=float), glcm_vec])
+        # Hu Moments: 7 invariantes de forma (log-transform para estabilizar)
+        m = cv2.moments(gray)
+        hu = cv2.HuMoments(m).flatten()
+        hu = np.sign(hu) * np.log1p(np.abs(hu))
+
+        # Sobel energy: energia dos gradientes em X e Y
+        gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+        gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+        sobel_energy = np.array([float((gx**2).mean()), float((gy**2).mean())], dtype=float)
+
+        # Vetor final: hist_gray (256) + hist_rgb (768) + 2 (LBP) + 3 (GLCM) + 7 (Hu) + 2 (Sobel)
+        return np.concatenate([
+            hist_gray,
+            hist_rgb,
+            np.array([lbp_mean, lbp_std], dtype=float),
+            glcm_vec,
+            hu.astype(float),
+            sobel_energy
+        ])
 
     def __load_df_database_images__sql__(self, sql):
         df_database_images = select_data(sql)
