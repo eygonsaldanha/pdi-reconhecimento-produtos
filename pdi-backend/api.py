@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify
 from knn_process_image import KNN
-# from flask_cors import CORS
+from flask_cors import CORS
 from process_image_method import process_image_exec,process_image_confirm_exec
 
 app = Flask(__name__)
-# CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
@@ -32,6 +32,14 @@ def not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     return jsonify({'error': 'Erro interno do servidor', 'code': 'INTERNAL_ERROR'}), 500
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 
 if __name__ == '__main__':
