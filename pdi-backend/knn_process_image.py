@@ -27,53 +27,58 @@ class KNN:
         self.knn_features = None
 
     # TODO (LEGADO) Deve ser removido / trocado por features persistidas ou pipeline de features compactas
-    def process_image_pdi_concat(self, image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # Histograma em tons de cinza
-        hist_gray = cv2.calcHist([gray], [0], None, [256], [0, 256])
-        hist_gray = cv2.normalize(hist_gray, hist_gray).flatten()
+def process_image_pdi_concat(self, image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        # Histogramas RGB
-        hist_b = cv2.calcHist([image], [0], None, [256], [0, 256])
-        hist_g = cv2.calcHist([image], [1], None, [256], [0, 256])
-        hist_r = cv2.calcHist([image], [2], None, [256], [0, 256])
-        hist_b = cv2.normalize(hist_b, hist_b).flatten()
-        hist_g = cv2.normalize(hist_g, hist_g).flatten()
-        hist_r = cv2.normalize(hist_r, hist_r).flatten()
-        hist_rgb = np.concatenate([hist_b, hist_g, hist_r])
+    # Pré-processamento adicional (não altera interface)
+    gauss = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(gauss, 100, 200)
 
-        # LBP: média e desvio do histograma LBP (barato e informativo)
-        _lbp_img, lbp_hist = extrair_lbp(gray, p=8, r=1)
-        lbp_mean = float(np.mean(lbp_hist))
-        lbp_std = float(np.std(lbp_hist))
+    # Histograma em tons de cinza (usar imagem suavizada)
+    hist_gray = cv2.calcHist([gauss], [0], None, [256], [0, 256])
+    hist_gray = cv2.normalize(hist_gray, hist_gray).flatten()
 
-        # GLCM: propriedades leves (usar ângulos em radianos)
-        glcm_features = extrair_glcm(gray, [1, 2], [0, np.pi/4])
-        glcm_vec = np.array([
-            glcm_features.get('contrast', 0.0),
-            glcm_features.get('homogeneity', 0.0),
-            glcm_features.get('energy', 0.0)
-        ], dtype=float)
+    # Histogramas RGB (inalterados)
+    hist_b = cv2.calcHist([image], [0], None, [256], [0, 256])
+    hist_g = cv2.calcHist([image], [1], None, [256], [0, 256])
+    hist_r = cv2.calcHist([image], [2], None, [256], [0, 256])
+    hist_b = cv2.normalize(hist_b, hist_b).flatten()
+    hist_g = cv2.normalize(hist_g, hist_g).flatten()
+    hist_r = cv2.normalize(hist_r, hist_r).flatten()
+    hist_rgb = np.concatenate([hist_b, hist_g, hist_r])
 
-        # Hu Moments: 7 invariantes de forma (log-transform para estabilizar)
-        m = cv2.moments(gray)
-        hu = cv2.HuMoments(m).flatten()
-        hu = np.sign(hu) * np.log1p(np.abs(hu))
+    # LBP (usar gauss)
+    _lbp_img, lbp_hist = extrair_lbp(gauss, p=8, r=1)
+    lbp_mean = float(np.mean(lbp_hist))
+    lbp_std  = float(np.std(lbp_hist))
 
-        # Sobel energy: energia dos gradientes em X e Y
-        gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
-        gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
-        sobel_energy = np.array([float((gx**2).mean()), float((gy**2).mean())], dtype=float)
+    # GLCM (usar gauss)
+    glcm_features = extrair_glcm(gauss, [1, 2], [0, np.pi/4])
+    glcm_vec = np.array([
+        glcm_features.get('contrast', 0.0),
+        glcm_features.get('homogeneity', 0.0),
+        glcm_features.get('energy', 0.0)
+    ], dtype=float)
 
-        # Vetor final: hist_gray (256) + hist_rgb (768) + 2 (LBP) + 3 (GLCM) + 7 (Hu) + 2 (Sobel)
-        return np.concatenate([
-            hist_gray,
-            hist_rgb,
-            np.array([lbp_mean, lbp_std], dtype=float),
-            glcm_vec,
-            hu.astype(float),
-            sobel_energy
-        ])
+    # Hu Moments (usar gauss)
+    m = cv2.moments(gauss)
+    hu = cv2.HuMoments(m).flatten()
+    hu = np.sign(hu) * np.log1p(np.abs(hu))
+
+    # Sobel energy (usar gauss)
+    gx = cv2.Sobel(gauss, cv2.CV_32F, 1, 0, ksize=3)
+    gy = cv2.Sobel(gauss, cv2.CV_32F, 0, 1, ksize=3)
+    sobel_energy = np.array([float((gx**2).mean()), float((gy**2).mean())], dtype=float)
+
+    return np.concatenate([
+        hist_gray,
+        hist_rgb,
+        np.array([lbp_mean, lbp_std], dtype=float),
+        glcm_vec,
+        hu.astype(float),
+        sobel_energy,
+        np.array([edge_density], dtype=float)
+    ])
 
     def __load_df_database_images__sql__(self, sql):
         df_database_images = select_data(sql)
