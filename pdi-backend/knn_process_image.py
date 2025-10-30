@@ -5,6 +5,16 @@ from sklearn.neighbors import NearestNeighbors
 
 from db_common import select_data
 from io_minio import get_single_object_img
+from pathlib import Path
+import sys
+
+# Habilita import dos módulos em libs/
+ROOT_DIR = Path(__file__).resolve().parents[1]
+LIBS_DIR = ROOT_DIR / "libs"
+if str(LIBS_DIR) not in sys.path:
+    sys.path.append(str(LIBS_DIR))
+
+from texture import extrair_lbp, extrair_glcm
 
 
 class KNN:
@@ -12,20 +22,41 @@ class KNN:
         self.df_database_images = None
         self.__load_df_database_images__()
         self.knn = None
+        # Novo: cache para features persistidas (IMAGE_FEATURES)
+        self.df_features = None
+        self.knn_features = None
 
-    # TODO Deve ser removido / trocado
+    # TODO (LEGADO) Deve ser removido / trocado por features persistidas ou pipeline de features compactas
     def process_image_pdi_concat(self, image):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Histograma em tons de cinza
         hist_gray = cv2.calcHist([gray], [0], None, [256], [0, 256])
         hist_gray = cv2.normalize(hist_gray, hist_gray).flatten()
 
+        # Histogramas RGB
         hist_b = cv2.calcHist([image], [0], None, [256], [0, 256])
         hist_g = cv2.calcHist([image], [1], None, [256], [0, 256])
         hist_r = cv2.calcHist([image], [2], None, [256], [0, 256])
+        hist_b = cv2.normalize(hist_b, hist_b).flatten()
+        hist_g = cv2.normalize(hist_g, hist_g).flatten()
+        hist_r = cv2.normalize(hist_r, hist_r).flatten()
+        hist_rgb = np.concatenate([hist_b, hist_g, hist_r])
 
-        hist_rgb = np.concatenate([cv2.normalize(hist_b, hist_b).flatten(), cv2.normalize(hist_g, hist_g).flatten(),
-                                   cv2.normalize(hist_r, hist_r).flatten()])
-        return np.concatenate([hist_gray, hist_rgb])
+        # LBP: média e desvio do histograma LBP (barato e informativo)
+        _lbp_img, lbp_hist = extrair_lbp(gray, p=8, r=1)
+        lbp_mean = float(np.mean(lbp_hist))
+        lbp_std = float(np.std(lbp_hist))
+
+        # GLCM: propriedades leves (usar ângulos em radianos)
+        glcm_features = extrair_glcm(gray, [1, 2], [0, np.pi/4])
+        glcm_vec = np.array([
+            glcm_features.get('contrast', 0.0),
+            glcm_features.get('homogeneity', 0.0),
+            glcm_features.get('energy', 0.0)
+        ], dtype=float)
+
+        # Vetor final: hist_gray (256) + hist_rgb (768) + 2 (LBP) + 3 (GLCM)
+        return np.concatenate([hist_gray, hist_rgb, np.array([lbp_mean, lbp_std], dtype=float), glcm_vec])
 
     def __load_df_database_images__sql__(self, sql):
         df_database_images = select_data(sql)
