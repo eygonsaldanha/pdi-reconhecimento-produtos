@@ -1,54 +1,86 @@
-import os
-
 import cv2
 import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
 
-from common import allowed_file
-from pdi_methods_grouped import process_image_pdi_concat
-
-all_images_paths = []
+from db_common import select_data
+from io_minio import get_single_object_img
 
 
-# Carrega todas as images do banco
-def __load_files__():
-    path = "/home/gbrl/Área de trabalho/Developer/Study/PDI/pdi-reconhecimento-produtos/dataset/"
-    all_images_paths = []
-    __find_files__(path)
+class KNN:
+    def __init__(self):
+        self.df_database_images = None
+        self.__load_df_database_images__()
+        self.knn = None
 
+    # TODO Deve ser removido / trocado
+    def process_image_pdi_concat(self, image):
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        hist_gray = cv2.calcHist([gray], [0], None, [256], [0, 256])
+        hist_gray = cv2.normalize(hist_gray, hist_gray).flatten()
 
-def __find_files__(path):
-    for name in os.listdir(path):
-        full_path = os.path.join(path, name)
-        if os.path.isdir(full_path):
-            __find_files__(full_path)
-        elif os.path.isfile(full_path) and allowed_file(name):
-            all_images_paths.append(full_path)
+        hist_b = cv2.calcHist([image], [0], None, [256], [0, 256])
+        hist_g = cv2.calcHist([image], [1], None, [256], [0, 256])
+        hist_r = cv2.calcHist([image], [2], None, [256], [0, 256])
 
+        hist_rgb = np.concatenate([cv2.normalize(hist_b, hist_b).flatten(), cv2.normalize(hist_g, hist_g).flatten(),
+                                   cv2.normalize(hist_r, hist_r).flatten()])
+        return np.concatenate([hist_gray, hist_rgb])
 
-def knn_process_image(query_img):
-    __load_files__()
-    all_images = [cv2.imread(name) for name in all_images_paths]
-    X = np.array([process_image_pdi_concat(img) for img in all_images])
+    def __load_df_database_images__sql__(self, sql):
+        df_database_images = select_data(sql)
+        df_database_images['img'] = df_database_images.apply(lambda row: get_single_object_img(row['path_data']),axis=1)
 
-    query = process_image_pdi_concat(query_img).reshape(1, -1)
+        features = df_database_images['img'].apply(self.process_image_pdi_concat)
+        feature_matrix = np.vstack(features.values)
 
-    knn = NearestNeighbors(n_neighbors=len(all_images_paths), metric="euclidean")
-    knn.fit(X)
+        num_cols = feature_matrix.shape[1]
+        feature_cols = [f'feat_{i}' for i in range(num_cols)]
 
-    distances, indices = knn.kneighbors(query)
+        df_features = pd.DataFrame(feature_matrix, columns=feature_cols)
+        df_database_images = pd.concat([df_database_images, df_features], axis=1)
 
-    results = []
-    for rank, idx in enumerate(indices[0]):
-        image_name = all_images_paths[idx]
-        distance = round(float(distances[0][rank]), 5)
-        similarity = round(float(1 / (1 + distance)), 2)
-        results.append(
-            {"Rank": rank + 1, "Nome da Imagem": image_name, "Distância": distance, 'Similaridade': similarity, })
+        knn = NearestNeighbors(n_neighbors=len(df_database_images), metric='euclidean')
+        knn.fit(feature_matrix)
 
-    df_results = pd.DataFrame(results)
-    df_results = df_results.sort_values(by="Distância", ascending=True).reset_index(drop=True)
-    pd.set_option('display.max_colwidth', None)
+        return [df_database_images, knn]
 
-    return df_results[df_results['Rank'] == 1]['Nome da Imagem'].iloc[0]
+    def __load_df_database_images__(self, not_is_this_products=None):
+        if not_is_this_products is None:
+            not_is_this_products = []
+
+        if not_is_this_products != [] and isinstance(not_is_this_products, list):
+            not_is_this_products = [n for n in not_is_this_products if isinstance(n, int)]
+
+            return self.__load_df_database_images__sql__(f"""
+            SELECT d.* FROM data d
+            JOIN product_data pd ON pd.id_data = d.id_data
+            JOIN product p ON p.id_product = pd.id_product
+            WHERE p.id_product NOT IN ({','.join((map(str, not_is_this_products)))})
+            """)
+
+        if self.df_database_images is None or self.knn is None:
+            self.df_database_images, self.knn = self.__load_df_database_images__sql__("""
+            SELECT d.* FROM data d
+            JOIN product_data pd ON pd.id_data = d.id_data
+            JOIN product p ON p.id_product = pd.id_product
+            """)
+
+        return [self.df_database_images, self.knn]
+
+    def knn_process_image(self, query_img, not_is_this_products):
+        df_database_images, knn = self.__load_df_database_images__(not_is_this_products)
+
+        query_vec = self.process_image_pdi_concat(query_img).reshape(1, -1)
+        distances, indices = knn.kneighbors(query_vec)
+
+        results = []
+        for rank, idx in enumerate(indices[0]):
+            image_name = df_database_images.iloc[idx]['path_data']
+            distance = round(float(distances[0][rank]), 5)
+
+            results.append({'image_path': image_name, 'distance': distance})
+
+        df_results = (pd.DataFrame(results).sort_values(by='distance', ascending=True).reset_index(drop=True))
+
+        return df_results.iloc[0]['image_path']
