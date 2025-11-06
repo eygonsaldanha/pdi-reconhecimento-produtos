@@ -1,56 +1,127 @@
 import cv2
 import numpy as np
-from skimage.feature import local_binary_pattern, hog, graycomatrix, graycoprops
 
-def extrair_caracteristicas_forma(contornos):
-    caracteristicas = []
-    for contorno in contornos:
-        area = cv2.contourArea(contorno)
-        perimetro = cv2.arcLength(contorno, True)
-        x, y, w, h = cv2.boundingRect(contorno)
-        circularidade = 4 * np.pi * area / (perimetro ** 2) if perimetro > 0 else 0.0
+
+def segmentar_simples(imagem_cinza):
+    if imagem_cinza is None or len(imagem_cinza.shape) != 2:
+        return None, None
+    
+    try:
+        blur = cv2.GaussianBlur(imagem_cinza, (5, 5), 0)
+        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         
-        caracteristicas.append({
-            "area": float(area),
-            "perimetro": float(perimetro),
-            "bounding_box": (int(x), int(y), int(w), int(h)),
-            "circularidade": float(circularidade),
-        })
-    return caracteristicas
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+        
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return None, None
+        
+        maior_contorno = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(maior_contorno)
+        
+        h, w = imagem_cinza.shape
+        if area < (h * w * 0.01):
+            return None, None
+        
+        mascara = np.zeros_like(imagem_cinza)
+        cv2.drawContours(mascara, [maior_contorno], -1, 255, -1)
+        
+        return mascara, maior_contorno
+    
+    except:
+        return None, None
 
-def extrair_lbp(imagem, P=8, R=1):
-    lbp = local_binary_pattern(imagem, P=P, R=R, method="uniform")
-    lbp_norm = (lbp - lbp.min()) / (lbp.max() - lbp.min() + 1e-9)
-    lbp_img = (lbp_norm * 255).astype("uint8")
-    
-    lbp_bins = np.arange(0, lbp.max() + 2)
-    lbp_hist, _ = np.histogram(lbp.ravel(), bins=lbp_bins, density=True)
-    
-    return lbp_img, lbp_hist
 
-def extrair_glcm(imagem, distancias=[1, 2, 3], angulos=[0, np.pi/4, np.pi/2, 3*np.pi/4]):
-    glcm = graycomatrix(imagem, distances=distancias, angles=angulos, levels=256, symmetric=True, normed=True)
+def extrair_histograma_rgb(imagem, mascara, bins=32):
+    if imagem is None or mascara is None:
+        return np.zeros(bins * 3)
     
-    caracteristicas = {}
-    propriedades = ["contrast", "dissimilarity", "homogeneity", "ASM", "energy", "correlation"]
+    try:
+        imagem_mascarada = cv2.bitwise_and(imagem, imagem, mask=mascara)
+        
+        hist_b = cv2.calcHist([imagem_mascarada], [0], mascara, [bins], [0, 256])
+        hist_g = cv2.calcHist([imagem_mascarada], [1], mascara, [bins], [0, 256])
+        hist_r = cv2.calcHist([imagem_mascarada], [2], mascara, [bins], [0, 256])
+        
+        hist_b = cv2.normalize(hist_b, hist_b).flatten()
+        hist_g = cv2.normalize(hist_g, hist_g).flatten()
+        hist_r = cv2.normalize(hist_r, hist_r).flatten()
+        
+        hist_rgb = np.concatenate([hist_r, hist_g, hist_b])
+        
+        return hist_rgb
     
-    for prop in propriedades:
-        caracteristicas[prop] = float(graycoprops(glcm, prop).mean())
-    
-    return caracteristicas
+    except:
+        return np.zeros(bins * 3)
 
-def extrair_hog(imagem, orientacoes=9, pixels_por_celula=(16, 16), celulas_por_bloco=(2, 2)):
-    hog_vector, hog_vis = hog(
-        imagem,
-        orientations=orientacoes,
-        pixels_per_cell=pixels_por_celula,
-        cells_per_block=celulas_por_bloco,
-        visualize=True,
-        block_norm="L2-Hys",
-        feature_vector=True,
-    )
+
+def extrair_histograma_hsv(imagem, mascara, bins=32):
+    if imagem is None or mascara is None:
+        return np.zeros(bins * 3)
     
-    hog_vis_norm = (hog_vis - hog_vis.min()) / (hog_vis.max() - hog_vis.min() + 1e-9)
-    hog_img = (hog_vis_norm * 255).astype("uint8")
+    try:
+        hsv = cv2.cvtColor(imagem, cv2.COLOR_BGR2HSV)
+        hsv_mascarado = cv2.bitwise_and(hsv, hsv, mask=mascara)
+        
+        hist_h = cv2.calcHist([hsv_mascarado], [0], mascara, [bins], [0, 180])
+        hist_s = cv2.calcHist([hsv_mascarado], [1], mascara, [bins], [0, 256])
+        hist_v = cv2.calcHist([hsv_mascarado], [2], mascara, [bins], [0, 256])
+        
+        hist_h = cv2.normalize(hist_h, hist_h).flatten()
+        hist_s = cv2.normalize(hist_s, hist_s).flatten()
+        hist_v = cv2.normalize(hist_v, hist_v).flatten()
+        
+        hist_hsv = np.concatenate([hist_h, hist_s, hist_v])
+        
+        return hist_hsv
     
-    return hog_vector, hog_img
+    except:
+        return np.zeros(bins * 3)
+
+
+def processar_imagem_completa(imagem_colorida):
+    if imagem_colorida is None:
+        return None
+    
+    if not isinstance(imagem_colorida, np.ndarray):
+        return None
+    
+    if len(imagem_colorida.shape) != 3:
+        return None
+    
+    h, w = imagem_colorida.shape[:2]
+    if h < 10 or w < 10:
+        return None
+    
+    try:
+        gray = cv2.cvtColor(imagem_colorida, cv2.COLOR_BGR2GRAY)
+        
+        mascara, contorno = segmentar_simples(gray)
+        
+        if mascara is None or contorno is None:
+            return None
+        
+        area = cv2.contourArea(contorno)
+        if area < (h * w * 0.01):
+            return None
+        
+        hist_rgb = extrair_histograma_rgb(imagem_colorida, mascara, bins=32)
+        hist_hsv = extrair_histograma_hsv(imagem_colorida, mascara, bins=32)
+        
+        vetor = np.concatenate([
+            hist_rgb,
+            hist_hsv
+        ])
+        
+        vetor = np.nan_to_num(vetor, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        if len(vetor) != 192:
+            return None
+        
+        return vetor
+    
+    except Exception as e:
+        return None

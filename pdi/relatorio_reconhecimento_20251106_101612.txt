@@ -1,0 +1,84 @@
+============================================================
+RELATÓRIO DE RECONHECIMENTO DE PRODUTOS
+============================================================
+Data/Hora: 2025-11-06 10:16:12
+
+Total de imagens testadas: 66
+Acertos: 21
+Erros: 45
+Acurácia Total: 31.82%
+
+------------------------------------------------------------
+ACURÁCIA POR PRODUTO:
+------------------------------------------------------------
+Apple                :   1/  7 =  14.29%
+Banana               :   1/  4 =  25.00%
+Beetroot             :   0/  4 =   0.00%
+Cabbage              :   2/  3 =  66.67%
+Carambula            :   2/  3 =  66.67%
+Cocos                :   0/  2 =   0.00%
+Corn                 :   2/  6 =  33.33%
+Dates                :   1/  2 =  50.00%
+Eggplant             :   2/  5 =  40.00%
+Kiwi                 :   0/  2 =   0.00%
+Limes                :   0/  2 =   0.00%
+Mandarine            :   0/  3 =   0.00%
+Pineapple            :   0/  6 =   0.00%
+Pitahaya             :   5/  5 = 100.00%
+Strawberry           :   5/  7 =  71.43%
+Watermelon           :   0/  5 =   0.00%
+
+------------------------------------------------------------
+DETALHAMENTO DE ERROS:
+------------------------------------------------------------
+Imagem                                   | Esperado             | Predito              | Distância 
+----------------------------------------------------------------------------------------------------
+1.jpg                                    | Apple                | Strawberry           | 0.44857   
+1.png                                    | Apple                | Pitahaya             | 0.26780   
+2.jpg                                    | Apple                | Mandarine            | 0.32902   
+2.png                                    | Apple                | Corn                 | 0.27715   
+3.jpg                                    | Apple                | Pitahaya             | 0.42410   
+3.png                                    | Apple                | Carambula            | 0.23567   
+1.jpg                                    | Banana               | Corn                 | 0.08080   
+2.webp                                   | Banana               | Carambula            | 0.16788   
+3.jpg                                    | Banana               | Carambula            | 0.15330   
+1.webp                                   | Beetroot             | Eggplant             | 0.57778   
+2.png                                    | Beetroot             | Eggplant             | 0.64555   
+3.jpg                                    | Beetroot             | Cocos                | 0.22229   
+3.png                                    | Beetroot             | Strawberry           | 0.14842   
+2.png                                    | Cabbage              | Limes                | 0.34194   
+1.webp                                   | Carambula            | Kiwi                 | 0.26583   
+2.jpg                                    | Cocos                | Banana               | 0.15283   
+3.jpg                                    | Cocos                | Carambula            | 0.24302   
+1.png                                    | Corn                 | Carambula            | 0.10025   
+2.webp                                   | Corn                 | Strawberry           | 0.20982   
+3.jpg                                    | Corn                 | Apple                | 0.61903   
+4.png                                    | Corn                 | Carambula            | 0.16389   
+3.webp                                   | Dates                | Eggplant             | 0.13366   
+1.jpg                                    | Eggplant             | Strawberry           | 0.24952   
+2.jpg                                    | Eggplant             | Pitahaya             | 0.26464   
+4.png                                    | Eggplant             | Cocos                | 0.24083   
+1.jpg                                    | Kiwi                 | Cocos                | 0.38024   
+3.jpg                                    | Kiwi                 | Cocos                | 0.21040   
+1.webp                                   | Limes                | Cabbage              | 0.88842   
+2.jpg                                    | Limes                | Cabbage              | 0.85677   
+1.webp                                   | Mandarine            | Strawberry           | 0.26979   
+2.jpg                                    | Mandarine            | Apple                | 0.45739   
+3].jpg                                   | Mandarine            | Carambula            | 0.21500   
+1.jpg                                    | Pineapple            | Beetroot             | 0.15221   
+2.png                                    | Pineapple            | Banana               | 0.20513   
+2.webp                                   | Pineapple            | Cocos                | 0.17294   
+3.jpeg                                   | Pineapple            | Limes                | 0.84236   
+3.png                                    | Pineapple            | Beetroot             | 0.22533   
+4.png                                    | Pineapple            | Banana               | 0.17285   
+2.png                                    | Strawberry           | Corn                 | 0.21692   
+3.png                                    | Strawberry           | Pitahaya             | 0.34194   
+1.jpg                                    | Watermelon           | Cabbage              | 0.25806   
+2.png                                    | Watermelon           | Cabbage              | 0.19545   
+2.webp                                   | Watermelon           | Kiwi                 | 0.87622   
+3.jpg                                    | Watermelon           | Corn                 | 0.32221   
+3.png                                    | Watermelon           | Kiwi                 | 0.86451   
+
+============================================================
+FIM DO RELATÓRIO
+============================================================
