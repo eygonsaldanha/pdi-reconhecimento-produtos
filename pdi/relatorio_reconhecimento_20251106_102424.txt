@@ -1,0 +1,92 @@
+============================================================
+RELATÓRIO DE RECONHECIMENTO DE PRODUTOS
+============================================================
+Data/Hora: 2025-11-06 10:24:24
+
+Total de imagens testadas: 64
+Acertos: 11
+Erros: 53
+Acurácia Total: 17.19%
+
+------------------------------------------------------------
+ACURÁCIA POR PRODUTO:
+------------------------------------------------------------
+Apple                :   1/  5 =  20.00%
+Banana               :   0/  4 =   0.00%
+Beetroot             :   0/  4 =   0.00%
+Cabbage              :   0/  3 =   0.00%
+Carambula            :   2/  3 =  66.67%
+Cocos                :   0/  2 =   0.00%
+Corn                 :   0/  6 =   0.00%
+Dates                :   0/  2 =   0.00%
+Eggplant             :   2/  5 =  40.00%
+Kiwi                 :   0/  2 =   0.00%
+Limes                :   0/  2 =   0.00%
+Mandarine            :   0/  3 =   0.00%
+Pineapple            :   1/  6 =  16.67%
+Pitahaya             :   2/  5 =  40.00%
+Strawberry           :   3/  7 =  42.86%
+Watermelon           :   0/  5 =   0.00%
+
+------------------------------------------------------------
+DETALHAMENTO DE ERROS:
+------------------------------------------------------------
+Imagem                                   | Esperado             | Predito              | Distância 
+----------------------------------------------------------------------------------------------------
+1.png                                    | Apple                | Pitahaya             | 5.47173   
+2.png                                    | Apple                | Corn                 | 5.15026   
+3.jpg                                    | Apple                | Eggplant             | 21.36235  
+3.png                                    | Apple                | Carambula            | 6.80079   
+1.jpg                                    | Banana               | Carambula            | 4.32070   
+2.webp                                   | Banana               | Carambula            | 8.19623   
+3.jpg                                    | Banana               | Carambula            | 4.43407   
+4.png                                    | Banana               | Carambula            | 8.79403   
+1.webp                                   | Beetroot             | Eggplant             | 9.12578   
+2.png                                    | Beetroot             | Eggplant             | 16.37881  
+3.jpg                                    | Beetroot             | Cocos                | 5.15202   
+3.png                                    | Beetroot             | Strawberry           | 3.87312   
+1.jpg                                    | Cabbage              | Carambula            | 9.32391   
+2.png                                    | Cabbage              | Eggplant             | 17.89021  
+3.jpeg                                   | Cabbage              | Carambula            | 10.05741  
+1.webp                                   | Carambula            | Apple                | 4.79405   
+2.jpg                                    | Cocos                | Carambula            | 3.29029   
+3.jpg                                    | Cocos                | Corn                 | 6.60343   
+1.jpg                                    | Corn                 | Banana               | 5.74369   
+1.png                                    | Corn                 | Carambula            | 4.70702   
+2.webp                                   | Corn                 | Strawberry           | 17.28988  
+3.jpg                                    | Corn                 | Apple                | 5.19667   
+3.png                                    | Corn                 | Carambula            | 7.80502   
+4.png                                    | Corn                 | Carambula            | 4.52929   
+2.webp                                   | Dates                | Eggplant             | 16.60329  
+3.webp                                   | Dates                | Eggplant             | 10.16798  
+2.jpg                                    | Eggplant             | Pitahaya             | 5.98569   
+3.jpg                                    | Eggplant             | Cocos                | 9.60416   
+4.png                                    | Eggplant             | Beetroot             | 4.22871   
+1.jpg                                    | Kiwi                 | Carambula            | 7.42459   
+3.jpg                                    | Kiwi                 | Cocos                | 4.43838   
+1.webp                                   | Limes                | Apple                | 9.67858   
+2.jpg                                    | Limes                | Kiwi                 | 7.05733   
+1.webp                                   | Mandarine            | Apple                | 12.53981  
+2.jpg                                    | Mandarine            | Eggplant             | 24.71288  
+3].jpg                                   | Mandarine            | Carambula            | 4.80442   
+2.png                                    | Pineapple            | Banana               | 5.19716   
+2.webp                                   | Pineapple            | Corn                 | 4.56695   
+3.jpeg                                   | Pineapple            | Strawberry           | 7.11620   
+3.png                                    | Pineapple            | Banana               | 4.72518   
+4.png                                    | Pineapple            | Banana               | 4.12298   
+1.webp                                   | Pitahaya             | Strawberry           | 14.44391  
+2.jpg                                    | Pitahaya             | Eggplant             | 22.87592  
+3.jpg                                    | Pitahaya             | Strawberry           | 13.93050  
+2.jpg                                    | Strawberry           | Apple                | 4.27758   
+2.png                                    | Strawberry           | Corn                 | 4.83788   
+3.jpg                                    | Strawberry           | Eggplant             | 24.64182  
+3.png                                    | Strawberry           | Pitahaya             | 5.64543   
+1.jpg                                    | Watermelon           | Pitahaya             | 19.03305  
+2.png                                    | Watermelon           | Corn                 | 5.72410   
+2.webp                                   | Watermelon           | Strawberry           | 11.09051  
+3.jpg                                    | Watermelon           | Corn                 | 7.70839   
+3.png                                    | Watermelon           | Strawberry           | 7.38616   
+
+============================================================
+FIM DO RELATÓRIO
+============================================================

@@ -1,0 +1,58 @@
+============================================================
+RELATÓRIO DE RECONHECIMENTO DE PRODUTOS
+============================================================
+Data/Hora: 2025-11-06 11:32:11
+
+Total de imagens testadas: 3071
+Acertos: 3056
+Erros: 15
+Acurácia Total: 99.51%
+
+------------------------------------------------------------
+ACURÁCIA POR PRODUTO:
+------------------------------------------------------------
+Avocado Green 1      : 231/231 = 100.00%
+Banana 3             :  76/ 77 =  98.70%
+Beans 1              :  76/ 77 =  98.70%
+Blackberrie 1        : 149/150 =  99.33%
+Cabbage red 1        :  49/ 49 = 100.00%
+Cactus fruit green 1 : 231/231 = 100.00%
+Cherry 3             : 231/231 = 100.00%
+Cucumber 1           :  50/ 50 = 100.00%
+Nectarine Flat 2     : 153/153 = 100.00%
+Nut 1                :  80/ 80 = 100.00%
+Onion Red 2          : 236/237 =  99.58%
+Peach 3              : 306/306 = 100.00%
+Pear 1               : 162/162 = 100.00%
+Pistachio 1          : 231/231 = 100.00%
+Quince 2             : 240/240 = 100.00%
+Tomato 1             : 214/216 =  99.07%
+apple_red_3          : 136/140 =  97.14%
+carrot_1             :  50/ 50 = 100.00%
+eggplant_long_1      :  75/ 80 =  93.75%
+zucchini_1           :  80/ 80 = 100.00%
+
+------------------------------------------------------------
+DETALHAMENTO DE ERROS:
+------------------------------------------------------------
+Imagem                                   | Esperado             | Predito              | Distância 
+----------------------------------------------------------------------------------------------------
+r0_207.jpg                               | Banana 3             | Pear 1               | 0.00825   
+r1_127.jpg                               | Beans 1              | carrot_1             | 0.01955   
+r1_159.jpg                               | Blackberrie 1        | carrot_1             | 0.01556   
+r0_127.jpg                               | Onion Red 2          | apple_red_3          | 0.00620   
+r0_91.jpg                                | Tomato 1             | apple_red_3          | 0.00567   
+r1_175.jpg                               | Tomato 1             | apple_red_3          | 0.00647   
+r0_239.jpg                               | apple_red_3          | Tomato 1             | 0.00732   
+r0_243.jpg                               | apple_red_3          | Tomato 1             | 0.00554   
+r0_7.jpg                                 | apple_red_3          | Tomato 1             | 0.00871   
+r1_259.jpg                               | apple_red_3          | Quince 2             | 0.49243   
+r0_207.jpg                               | eggplant_long_1      | carrot_1             | 0.02122   
+r0_27.jpg                                | eggplant_long_1      | carrot_1             | 0.01503   
+r0_59.jpg                                | eggplant_long_1      | apple_red_3          | 0.00815   
+r0_71.jpg                                | eggplant_long_1      | apple_red_3          | 0.00709   
+r0_91.jpg                                | eggplant_long_1      | Onion Red 2          | 0.00399   
+
+============================================================
+FIM DO RELATÓRIO
+============================================================

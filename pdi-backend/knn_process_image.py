@@ -2,6 +2,11 @@ import cv2
 import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from libs.features import processar_imagem_completa
 
 from db_common import select_data
 from io_minio import get_single_object_img
@@ -13,27 +18,43 @@ class KNN:
         self.__load_df_database_images__()
         self.knn = None
 
-    # TODO Deve ser removido / trocado
     def process_image_pdi_concat(self, image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        hist_gray = cv2.calcHist([gray], [0], None, [256], [0, 256])
-        hist_gray = cv2.normalize(hist_gray, hist_gray).flatten()
-
-        hist_b = cv2.calcHist([image], [0], None, [256], [0, 256])
-        hist_g = cv2.calcHist([image], [1], None, [256], [0, 256])
-        hist_r = cv2.calcHist([image], [2], None, [256], [0, 256])
-
-        hist_rgb = np.concatenate([cv2.normalize(hist_b, hist_b).flatten(), cv2.normalize(hist_g, hist_g).flatten(),
-                                   cv2.normalize(hist_r, hist_r).flatten()])
-        return np.concatenate([hist_gray, hist_rgb])
+        if image is None:
+            return None
+        try:
+            vetor = processar_imagem_completa(image)
+            if vetor is None:
+                return None
+            if len(vetor) != 192:
+                return None
+            return vetor
+        except:
+            return None
 
     def __load_df_database_images__sql__(self, sql):
         df_database_images = select_data(sql)
-        df_database_images['img'] = df_database_images.apply(lambda row: get_single_object_img(row['path_data']),axis=1)
+        df_database_images['img'] = df_database_images.apply(lambda row: get_single_object_img(row['path_data']), axis=1)
 
         features = df_database_images['img'].apply(self.process_image_pdi_concat)
-        feature_matrix = np.vstack(features.values)
-
+        
+        feature_list = []
+        valid_indices = []
+        
+        for idx, feat in enumerate(features):
+            if feat is not None and isinstance(feat, np.ndarray) and len(feat) == 192:
+                feature_list.append(feat)
+                valid_indices.append(idx)
+        
+        if len(feature_list) == 0:
+            raise ValueError("Nenhum vetor de características válido foi gerado")
+        
+        feature_matrix = np.vstack(feature_list)
+        
+        if feature_matrix.shape[1] != 192:
+            raise ValueError(f"Vetor de características deve ter 192 dimensões, mas tem {feature_matrix.shape[1]}")
+        
+        df_database_images = df_database_images.iloc[valid_indices].reset_index(drop=True)
+        
         num_cols = feature_matrix.shape[1]
         feature_cols = [f'feat_{i}' for i in range(num_cols)]
 
@@ -69,9 +90,19 @@ class KNN:
         return [self.df_database_images, self.knn]
 
     def knn_process_image(self, query_img, not_is_this_products):
+        if query_img is None:
+            raise ValueError("Imagem de consulta não pode ser None")
+        
         df_database_images, knn = self.__load_df_database_images__(not_is_this_products)
 
-        query_vec = self.process_image_pdi_concat(query_img).reshape(1, -1)
+        query_vec = self.process_image_pdi_concat(query_img)
+        if query_vec is None:
+            raise ValueError("Falha ao processar imagem de consulta")
+        
+        if len(query_vec) != 192:
+            raise ValueError(f"Vetor de características deve ter 192 dimensões, mas tem {len(query_vec)}")
+        
+        query_vec = query_vec.reshape(1, -1)
         distances, indices = knn.kneighbors(query_vec)
 
         results = []
