@@ -5,6 +5,7 @@ from sklearn.neighbors import NearestNeighbors
 
 from db_common import select_data
 from io_minio import get_single_object_img
+from libs.knn_process import knn_process_df_image
 
 
 class KNN:
@@ -13,19 +14,8 @@ class KNN:
         self.__load_df_database_images__()
         self.knn = None
 
-    # TODO Deve ser removido / trocado
     def process_image_pdi_concat(self, image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        hist_gray = cv2.calcHist([gray], [0], None, [256], [0, 256])
-        hist_gray = cv2.normalize(hist_gray, hist_gray).flatten()
-
-        hist_b = cv2.calcHist([image], [0], None, [256], [0, 256])
-        hist_g = cv2.calcHist([image], [1], None, [256], [0, 256])
-        hist_r = cv2.calcHist([image], [2], None, [256], [0, 256])
-
-        hist_rgb = np.concatenate([cv2.normalize(hist_b, hist_b).flatten(), cv2.normalize(hist_g, hist_g).flatten(),
-                                   cv2.normalize(hist_r, hist_r).flatten()])
-        return np.concatenate([hist_gray, hist_rgb])
+        return knn_process_df_image(image_process=image)
 
     def __load_df_database_images__sql__(self, sql):
         df_database_images = select_data(sql)

@@ -9,3 +9,4 @@ pandas
 sqlalchemy
 scikit-learn
 flask_cors
+pyarrow

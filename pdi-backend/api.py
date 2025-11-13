@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from knn_process_image import KNN
 from flask_cors import CORS
-from process_image_method import process_image_exec,process_image_confirm_exec
+from process_image_method import process_image_exec, process_image_confirm_exec
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -12,7 +12,7 @@ knn_default = KNN()
 
 @app.route('/process-image', methods=['POST'])
 def process_image_route():
-    return process_image_exec(request,knn_default)
+    return process_image_exec(request, knn_default)
 
 @app.route('/process-image/confirm', methods=['POST'])
 def process_image_confirm_route():
