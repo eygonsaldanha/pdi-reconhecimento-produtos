@@ -118,10 +118,10 @@ function PhotoUpload({
   onPhotoAnalyzed,
 }: {
   onPhotoAnalyzed: (product: {
-    id: number;
-    idProduto: number;
-    nm_product: string;
-    vl_product: number;
+    idx_fruit: number;
+    predicted_fruit: string;
+    price: number;
+    confidence: number;
     image: string;
   }) => void;
 }) {
@@ -149,7 +149,7 @@ function PhotoUpload({
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:5000/process-image", {
+      const response = await fetch("http://localhost:8000/predict", {
         method: "POST",
         body: formData,
       });
@@ -160,13 +160,13 @@ function PhotoUpload({
 
       const result = await response.json();
       console.log("result: ", result);
-      
+
       if (result) {
         onPhotoAnalyzed({
-          id: result.id_data,
-          idProduto: result.id_product,
-          nm_product: result.nm_product,
-          vl_product: result.vl_product,
+          idx_fruit: result.idx_fruit,
+          predicted_fruit: result.predicted_fruit,
+          price: result.price,
+          confidence: result.confidence,
           image: imageUrl,
         });
 
@@ -179,10 +179,10 @@ function PhotoUpload({
 
       // Fallback para modo mock em caso de erro
       onPhotoAnalyzed({
-        id: Math.floor(Math.random() * 1000000),
-        idProduto: 0,
-        nm_product: "Produto Não Identificado",
-        vl_product: 0.0,
+        idx_fruit: 0,
+        predicted_fruit: "Produto Não Identificado",
+        price: 0.0,
+        confidence: 0.0,
         image: imageUrl,
       });
     }
@@ -273,18 +273,18 @@ function ProductResult({
   onProductUpdate,
 }: {
   product: {
-    id: number;
-    idProduto: number;
-    nm_product: string;
-    vl_product: number;
+    idx_fruit: number;
+    predicted_fruit: string;
+    price: number;
+    confidence: number;
     image: string;
   };
   onReset: () => void;
   onProductUpdate?: (newProduct: {
-    id: number;
-    idProduto: number;
-    nm_product: string;
-    vl_product: number;
+    idx_fruit: number;
+    predicted_fruit: string;
+    price: number;
+    confidence: number;
     image: string;
   }) => void;
 }) {
@@ -295,37 +295,21 @@ function ProductResult({
   const handleAddToCart = async () => {
     // Adicionar ao carrinho primeiro
     addToCart({
-      id: product.id.toString(),
-      name: product.nm_product,
-      price: product.vl_product,
+      id: product.idx_fruit.toString(),
+      name: product.predicted_fruit,
+      price: product.price,
       image: product.image,
       quantity: 1,
     });
 
-    // Fazer requisição de confirmação para registro (ignora o retorno)
-    try {
-      await fetch("http://localhost:5000/process-image/confirm", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id_product: product.idProduto,
-          id_data: product.id,
-        }),
-      });
-      console.log("Confirmação registrada com sucesso");
-    } catch (error) {
-      console.error("Erro ao registrar confirmação:", error);
-      // Ignora o erro, pois é apenas para registro
-    }
+    console.log("Produto adicionado ao carrinho:", product.predicted_fruit);
   };
 
   const handleIncorrectProduct = async () => {
     setIsReprocessing(true);
 
     // Adicionar o produto atual à lista de rejeitados
-    const updatedRejectedProducts = [...rejectedProducts, product.idProduto];
+    const updatedRejectedProducts = [...rejectedProducts, product.idx_fruit];
     setRejectedProducts(updatedRejectedProducts);
 
     try {
@@ -336,16 +320,23 @@ function ProductResult({
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("id_data", product.id.toString());
-      formData.append("not-is", updatedRejectedProducts.join(","));
-      console.log(formData);
-      
-      const apiResponse = await fetch("http://localhost:5000/process-image", {
+
+      // Adicionar cada ID rejeitado como um campo separado
+      updatedRejectedProducts.forEach((id) => {
+        formData.append("not_is_fruit", id.toString());
+      });
+
+      console.log(
+        "Enviando reprocessamento com rejeitados:",
+        updatedRejectedProducts
+      );
+
+      const apiResponse = await fetch("http://localhost:8000/predict", {
         method: "POST",
         body: formData,
       });
       console.log("apiResponse: ", apiResponse);
-      
+
       if (!apiResponse.ok) {
         throw new Error(`Erro HTTP: ${apiResponse.status}`);
       }
@@ -354,13 +345,15 @@ function ProductResult({
       console.log("Reprocessamento realizado:", result);
 
       // Se o reprocessamento retornou um novo produto, atualizar
+      if (onProductUpdate) {
         onProductUpdate({
-          id: result.id_data,
-          idProduto: result.id_product,
-          nm_product: result.nm_product,
-          vl_product: result.vl_product,
+          idx_fruit: result.idx_fruit,
+          predicted_fruit: result.predicted_fruit,
+          price: result.price,
+          confidence: result.confidence,
           image: product.image,
         });
+      }
     } catch (error) {
       console.error("Erro ao reprocessar imagem:", error);
       // Em caso de erro, apenas voltar para a tela inicial
@@ -384,20 +377,23 @@ function ProductResult({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={product.image || "/placeholder.svg"}
-            alt={product.nm_product}
+            alt={product.predicted_fruit}
             className="w-full h-full object-cover"
           />
           <Badge className="absolute top-3 right-3 bg-accent/90 text-accent-foreground backdrop-blur-sm">
-            ID: {product.idProduto}
+            ID: {product.idx_fruit}
           </Badge>
         </div>
 
         <div className="text-center space-y-4">
           <h2 className="text-3xl font-bold text-card-foreground">
-            {product.nm_product}
+            {product.predicted_fruit}
           </h2>
           <p className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent bg-black">
-            {formatPrice(product.vl_product)}
+            {formatPrice(product.price)}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Confiança: {(product.confidence * 100).toFixed(1)}%
           </p>
         </div>
 
@@ -593,18 +589,18 @@ function ShoppingCartSidebar() {
 
 export default function Home() {
   const [analyzedProduct, setAnalyzedProduct] = useState<{
-    id: number;
-    idProduto: number;
-    nm_product: string;
-    vl_product: number;
+    idx_fruit: number;
+    predicted_fruit: string;
+    price: number;
+    confidence: number;
     image: string;
   } | null>(null);
 
   const handlePhotoAnalyzed = (product: {
-    id: number;
-    idProduto: number;
-    nm_product: string;
-    vl_product: number;
+    idx_fruit: number;
+    predicted_fruit: string;
+    price: number;
+    confidence: number;
     image: string;
   }) => {
     setAnalyzedProduct(product);
@@ -615,10 +611,10 @@ export default function Home() {
   };
 
   const handleProductUpdate = (newProduct: {
-    id: number;
-    idProduto: number;
-    nm_product: string;
-    vl_product: number;
+    idx_fruit: number;
+    predicted_fruit: string;
+    price: number;
+    confidence: number;
     image: string;
   }) => {
     setAnalyzedProduct(newProduct);
