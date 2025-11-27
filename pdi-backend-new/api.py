@@ -1,6 +1,8 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from typing import List, Any, Dict
 from fastapi.middleware.cors import CORSMiddleware
+import json
 import numpy as np
 import cv2
 from pathlib import Path
@@ -8,7 +10,6 @@ import io
 from typing import Dict, Any
 import uvicorn
 import joblib
-import random
 
 from train import FruitClassifier
 from feature_extraction import extract_features
@@ -16,14 +17,13 @@ from feature_extraction import extract_features
 MODEL_PATH = Path(__file__).parent.parent / "models" / "knn_model.pkl"
 
 
-def find_clazz_by_name(name):
-    model_path = "../models/knn_model.pkl"
-    model_data = joblib.load(model_path)
+def find_clazz_by_idx(idx):
+    for clazz_and_price in clazz_and_prices:
+        if clazz_and_price["idx"] == idx:
+            return clazz_and_price
 
-    clazz_and_prices = [
-        {"idx": idx, "name": clazz, "price": round(5 + (random.random() * 15), 2)}
-        for idx, clazz in enumerate(model_data["classes"])
-    ]
+
+def find_clazz_by_name(name):
     for clazz_and_price in clazz_and_prices:
         if clazz_and_price["name"].upper() == name.upper():
             return clazz_and_price
@@ -44,17 +44,19 @@ app.add_middleware(
 )
 
 classifier: FruitClassifier = None
+clazz_and_prices = None
 
 
 @app.on_event("startup")
 async def load_model():
     global classifier
+    global clazz_and_prices
 
     try:
         if not MODEL_PATH.exists():
             raise FileNotFoundError(f"Modelo nao encontrado: {MODEL_PATH}")
 
-        classifier = FruitClassifier.load_model(str(MODEL_PATH))
+        classifier, clazz_and_prices = FruitClassifier.load_model(str(MODEL_PATH))
     except Exception as e:
         print(f"Erro ao carregar modelo: {e}")
         raise
@@ -70,7 +72,9 @@ def process_uploaded_image(file_bytes: bytes, image_size: tuple) -> np.ndarray:
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)) -> Dict[str, Any]:
+async def predict(
+    file: UploadFile = File(...), not_is_fruit: List[int] = Form([])
+) -> Dict[str, Any]:
     if classifier is None:
         raise HTTPException(status_code=503, detail="Modelo não carregado")
 
@@ -80,6 +84,8 @@ async def predict(file: UploadFile = File(...)) -> Dict[str, Any]:
             detail=f"Arquivo inválido. Esperado imagem, recebido: {file.content_type}",
         )
 
+    not_is_fruit = [find_clazz_by_idx(i)["name"] for i in not_is_fruit]
+
     try:
         contents = await file.read()
 
@@ -88,25 +94,46 @@ async def predict(file: UploadFile = File(...)) -> Dict[str, Any]:
         features = extract_features(img)
         features = features.reshape(1, -1)
 
-        prediction = classifier.knn.predict(features)[0]
         probas = classifier.knn.predict_proba(features)[0]
+        classes = classifier.classes
 
-        predicted_fruit = classifier.label_encoder.inverse_transform([prediction])[0]
-        predicted_fruit = find_clazz_by_name(predicted_fruit)
+        for i, c in enumerate(classes):
+            if c in not_is_fruit:
+                probas[i] = -1.0
+
+        proba_sum = probas.sum()
+
+        if proba_sum > 0:
+            probas = probas / proba_sum
+            prediction = probas.argmax()
+
+        else:
+            valid_indices = [i for i, c in enumerate(classes) if c not in not_is_fruit]
+
+            if len(valid_indices) == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Nenhuma classe válida disponível para escolher.",
+                )
+
+            prediction = valid_indices[0]
+
+        predicted_label = classifier.label_encoder.inverse_transform([prediction])[0]
+        predicted_fruit = find_clazz_by_name(predicted_label)
+        probabilities = {classes[i]: float(probas[i]) for i in range(len(classes))}
 
         return JSONResponse(
             content={
+                "idx_fruit": predicted_fruit["idx"],
                 "predicted_fruit": predicted_fruit["name"],
                 "price": predicted_fruit["price"],
-                "confidence": float(probas[prediction]),
-                "probabilities": {
-                    classifier.classes[i]: float(probas[i])
-                    for i in range(len(classifier.classes))
-                },
+                "confidence": float(probas[prediction]) if proba_sum > 0 else 0.0,
+                "probabilities": probabilities,
             }
         )
 
     except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=500, detail=f"Erro ao processar imagem: {str(e)}"
         )

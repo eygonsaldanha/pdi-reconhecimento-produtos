@@ -181,7 +181,7 @@ def evaluate_model(
 
     # Carrega modelo
     print("\nCarregando modelo...")
-    classifier = FruitClassifier.load_model(model_path)
+    classifier, _ = FruitClassifier.load_model(model_path)
     print(f"Modelo carregado: {model_path}")
     print(f"Classes: {classifier.classes}")
 

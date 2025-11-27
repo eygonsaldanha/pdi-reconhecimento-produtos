@@ -7,6 +7,7 @@ from sklearn.model_selection import GridSearchCV, cross_val_score
 from typing import Tuple, Dict, Any
 import time
 from datetime import timedelta
+import random
 
 from preprocessing import load_dataset
 from feature_extraction import extract_features_from_dataset
@@ -120,7 +121,12 @@ class FruitClassifier:
         classifier.classes = model_data["classes"]
         classifier.best_params = model_data["best_params"]
 
-        return classifier
+        clazz_and_prices = [
+            {"idx": idx, "name": clazz, "price": round(5 + (random.random() * 15), 2)}
+            for idx, clazz in enumerate(model_data["classes"])
+        ]
+
+        return classifier, clazz_and_prices
 
 
 def main():
